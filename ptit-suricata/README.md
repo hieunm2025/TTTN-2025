@@ -1,91 +1,148 @@
-Nội dung và hướng dẫn thực hiện bài thực hành
+## Bài Thực Hành: Cấu Hình và Sử Dụng Suricata, Hydra, Nmap, và Hping3
 
-Mục đích
+### Mục Đích
 
-Giúp sinh sinh viên hiểu các kiểu scan trong nmap
-Sử dụng công cụ hydra để tấn công vết cạn
-Sử dụng công cụ hping3 để tấn công từ chối dịch vụ
-Thực hành cấu hình và viết rule trong suricata
-Yêu cầu đối với sinh viên
+* Hiểu các kiểu quét (scan) trong Nmap.
+* Sử dụng công cụ Hydra để tấn công vết cạn (brute-force).
+* Sử dụng công cụ Hping3 để thực hiện tấn công từ chối dịch vụ (DoS).
+* Thực hành cấu hình và viết rule trong Suricata.
 
-Có kiến thức về hệ điều hành Linux.
+### Yêu Cầu Đối Với Sinh Viên
 
- 
-Nội dung thực hành
+* Có kiến thức về hệ điều hành Linux.
+* Cài đặt và sử dụng các công cụ cơ bản như Nmap, Hydra, Hping3, Suricata.
 
-Sinh viên tải lab tại:
- imodule https://github.com/nguyenductuan12/ptit-suricata/raw/main/imodule.tar
+### Nội Dung Thực Hành
 
-- Thực hiện cập nhập thời gian trên máy ubuntu đúng với thời gian thực để có thể tải lab về
+1. **Tải Lab**
+   Sinh viên tải lab tại:
+   [imodule.tar](https://github.com/nguyenductuan12/ptit-suricata/raw/main/imodule.tar)
 
-Vào terminal gõ:
-labtainer -r ptit-suricata
+2. **Cập Nhật Thời Gian Trên Máy Ubuntu**
+   Để cập nhật thời gian thực trên máy Ubuntu:
 
-(chú ý: sinh viên sử dụng mã sinh viên để nhập thông tin người thực hiện bài lab khi có yêu cầu, để sử dụng khi chấm điểm)
+   ```bash
+   sudo apt install ntpdate
+   sudo ntpdate time.windows.com
+   ```
 
-Sau khi khởi động xong, 2 terminal ảo sẽ suất hiện, một cái là đại diện cho máy server: server, một cái là đại diện cho máy attacker: attacker. Biết rằng 2 máy này nằm trong cùng một dải mạng và máy attacker đã biết được địa chỉ IP của máy server để có thể thực hiện nmap scan các dịch vụ trên máy server.
+3. **Khởi Động Lab**
+   Mở terminal và chạy lệnh sau để khởi động lab:
 
-Thực hiện cập nhập thời gian trên máy ubuntu đúng với thời gian thực để có thể tải lab về
-Trên  máy  server  thực  hiện  cấu  hình  suricata  qua  đường  dẫn
-/etc/suricata/suricata.yaml.
+   ```bash
+   labtainer -r ptit-suricata
+   ```
 
-Thực hiện cấu hình dải mạng cần giám sát, vì 2 máy nằm cùng dải mạng nên thực hiện cấu hình trường “HOME_NET”
-Thực hiện cấu hình đường đẫn đến file quy tắc mà Suricata sẽ áp dụng để phát hiện và cảnh báo, cấu hình tại trường “rule-files”
-Khởi động lại service suricata để cập nhập cấu hình
-Cập nhập các tập luật đã có sẵn và tập luật tự định nghĩa. Các tệp luật có sẵn trong suricata sau khi thực hiện câu lệnh sẽ được tải về đường dẫn cấu hình rule mà đã định nghĩa bên trên.
-suricata-update
+   * Hai terminal ảo sẽ xuất hiện:
 
-Tạo 1 file tự định nghĩa các rule riêng trong thư mục đã định nghĩa trong cấu hình
+     * **server**: Đại diện cho máy server.
+     * **attacker**: Đại diện cho máy attacker.
+     * Cả hai máy nằm trong cùng một dải mạng và máy attacker đã biết địa chỉ IP của máy server.
 
-Tham khảo hướng dẫn sử dụng suricata rules tại: https://docs.suricata.io/en/latest/rules/index.html
+4. **Cấu Hình Suricata Trên Máy Server**
+   Trên máy **server**, thực hiện cấu hình Suricata qua tệp cấu hình `/etc/suricata/suricata.yaml`.
 
-Sau mỗi lần định nghĩa rule mới khởi động lại service suricata để áp dụng rule mới vào để phát hiện
+   * Cấu hình dải mạng cần giám sát:
 
-Xem cảnh báo phát hiện nmap scan trong file fast.log trên máy victim
+     * Do hai máy nằm cùng dải mạng, cấu hình trường `HOME_NET`.
+   * Cấu hình đường dẫn đến tệp quy tắc Suricata trong trường `rule-files`.
+   * Khởi động lại dịch vụ Suricata để cập nhật cấu hình:
 
-tail -f /var/log/suricata/fast.log
+     ```bash
+     sudo systemctl restart suricata
+     ```
 
-Viết rule trên máy victim thực hiện phát hiện scan nmap quét cổng dịch vụ tcp với thông điệp cảnh báo sau: “POSSBL SCAN NMAP KNOWN TCP (type -sT) - {MSV}”. Trong đó MSV là mã sinh viên
+5. **Cập Nhật Các Tệp Luật Suricata**
+   Cập nhật các tập luật có sẵn và tệp luật tự định nghĩa:
 
-Ví dụ: alert tcp $HOME_NET any -> $HOME_NET any (msg:”POSSBL SCAN NMAP KNOWN TCP (type -sT)”; flow:stateless; classtype: attempted-recon; sid:1000001; threshold:type limit, track by_src, sount 10, seconds 300; dsize:0;)
+   ```bash
+   suricata-update
+   ```
 
-Trên máy attacker thực hiện quét cổng dịch vụ tcp
+6. **Tạo File Định Nghĩa Các Rule Riêng**
+   Tạo một tệp luật tự định nghĩa trong thư mục đã cấu hình trong `suricata.yaml`.
 
-nmap -sT <IP_victim>
+   Tham khảo hướng dẫn sử dụng Suricata rules tại: [Suricata Rule Documentation](https://docs.suricata.io/en/latest/rules/index.html)
 
-Viết rule thực hiện trên máy victim phát hiện scan nmap quét cổng dịch vụ udp với thông điệp sau: “POSSBL SCAN NMAP KNOWN UDP (type
+7. **Viết Rule Phát Hiện Nmap Scan**
 
--sU) - {MSV}”.
+   * Viết rule phát hiện quét Nmap TCP (sử dụng lệnh `nmap -sT`) với thông điệp cảnh báo:
 
-Trên máy attacker thực hiện quét cổng dịch vụ udp
+     ```bash
+     alert tcp $HOME_NET any -> $HOME_NET any (msg:"POSSBL SCAN NMAP KNOWN TCP (type -sT) - {MSV}"; flow:stateless; classtype: attempted-recon; sid:1000001; threshold:type limit, track by_src, count 10, seconds 300; dsize:0;)
+     ```
+   * Trên máy **attacker**, thực hiện quét cổng TCP:
 
-nmap -sUV -F -T5 <IP_victim>. (đã fix)
+     ```bash
+     nmap -sT <IP_victim>
+     ```
 
-Viết rule thực hiện phát hiện tấn công icmp flood trên máy victim với thông điệp như sau:”POSSBL DOS ICMP PACKET FLOOD – {MSV}”.
+8. **Viết Rule Phát Hiện Nmap Scan UDP**
 
-Trên máy attacker sử dụng công cụ hping3 để tấn công dos vào server
+   * Viết rule phát hiện quét Nmap UDP (sử dụng lệnh `nmap -sU`) với thông điệp cảnh báo:
 
-sudo hping3 -1 --flood <IP_victim>
+     ```bash
+     alert udp $HOME_NET any -> $HOME_NET any (msg:"POSSBL SCAN NMAP KNOWN UDP (type -sU) - {MSV}"; flow:stateless; classtype: attempted-recon; sid:1000002; threshold:type limit, track by_src, count 10, seconds 300; dsize:0;)
+     ```
+   * Trên máy **attacker**, thực hiện quét cổng UDP:
 
-Viết rule thực hiện phát hiện tấn công brute-force dịch vụ ssh trên máy
+     ```bash
+     nmap -sUV -F -T5 <IP_victim>
+     ```
 
-victim với thông điệp như sau: ”POSSBL SSH BRUTE FORCING! –
+9. **Viết Rule Phát Hiện Tấn Công ICMP Flood**
 
-{MSV}”.
+   * Viết rule phát hiện tấn công ICMP flood với thông điệp cảnh báo:
 
-Trên máy attacker thực hiện burte-force bằng công cụ hydra
+     ```bash
+     alert icmp $HOME_NET any -> $HOME_NET any (msg:"POSSBL DOS ICMP PACKET FLOOD - {MSV}"; sid:1000003;)
+     ```
+   * Trên máy **attacker**, sử dụng công cụ Hping3 để tấn công DoS vào máy victim:
 
-hydra -L username.txt -P passlist.txt ssh://<IP_victim>
+     ```bash
+     sudo hping3 -1 --flood <IP_victim>
+     ```
 
-Sử dụng password và username vừa lấy được, tải file từ victim về và đọc file trên máy attacker
+10. **Viết Rule Phát Hiện Tấn Công Brute-Force SSH**
 
-    Kết thúc bài lab:
-Trên terminal đầu tiên, sử dụng câu lệnh checkwork để kiểm tra kết quả bài lab, sau đó để đóng bài lab, sử dụng lệnh stoplab.
+    * Viết rule phát hiện tấn công brute-force vào dịch vụ SSH với thông điệp cảnh báo:
 
-Khi bài lab kết thúc, một tệp zip lưu kết quả được tạo và lưu vào một vị trí được hiển thị bên dưới stoplab.
+      ```bash
+      alert tcp $HOME_NET any -> $HOME_NET 22 (msg:"POSSBL SSH BRUTE FORCING! - {MSV}"; classtype: attempted-admin; sid:1000004;)
+      ```
+    * Trên máy **attacker**, sử dụng công cụ Hydra để thực hiện tấn công brute-force vào SSH:
 
-Khởi động lại bài lab:
+      ```bash
+      hydra -L username.txt -P passlist.txt ssh://<IP_victim>
+      ```
 
-Trong quá trình làm bài sinh viên cần thực hiện lại bài lab, dùng câu lệnh:
+11. **Tải File Từ Victim Về Máy Attacker**
 
-startlab –r lab_suricata
+    * Sau khi thành công trong việc brute-force, tải file từ victim về và đọc nó trên máy attacker.
+
+12. **Kết Thúc Bài Lab**
+
+    * Kiểm tra kết quả thực hiện bài lab bằng cách sử dụng lệnh `checkwork`:
+
+      ```bash
+      checkwork
+      ```
+    * Để đóng bài lab, sử dụng lệnh `stoplab`:
+
+      ```bash
+      stoplab
+      ```
+    * Sau khi dừng bài lab, một tệp zip chứa kết quả sẽ được tạo và lưu ở vị trí hiển thị.
+
+13. **Khởi Động Lại Lab**
+
+    * Trong trường hợp cần làm lại bài lab, dùng lệnh:
+
+      ```bash
+      startlab -r lab_suricata
+      ```
+
+
+
+* `{MSV}` trong các thông điệp cảnh báo là mã sinh viên của bạn. Thay thế `{MSV}` bằng mã sinh viên của bạn trong các rule.
+* Hãy kiểm tra các log của Suricata trong thư mục `/var/log/suricata/` để theo dõi cảnh báo và phát hiện các tấn công.
