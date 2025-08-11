@@ -45,38 +45,155 @@ Bài thực hành này giúp sinh viên làm quen với **Splunk**, một công 
 
 2. Trên **terminal của server** (container `logserver`), thực hiện các thao tác để **Splunk thu thập log** từ server.
 Thêm hướng dẫn 
-☑Cau hinh may server
+### **1. Tải và Cài Đặt Splunk Universal Forwarder (Phiên Bản 10.0.0)**
+#### **Bước 1: Tải Splunk Universal Forwarder**
+1. Truy cập và tải **Splunk Universal Forwarder phiên bản 10.0.0** cho hệ điều hành Linux (ARM64):
+   ```bash
+   wget -O splunkforwarder-10.0.0-e8eb0c4654f8-linux-amd64.tgz "https://download.splunk.com/products/universalforwarder/releases/10.0.0/linux/splunkforwarder-10.0.0-e8eb0c4654f8-linux-amd64.tgz"
+   ```
+#### **Bước 2: Giải Nén và Cài Đặt Splunk Universal Forwarder**
+2. Giải nén file tải về vào thư mục `/opt`:
+   ```bash
+   tar xvzf splunkforwarder-10.0.0-e8eb0c4654f8-linux-amd64.tgz
+ -C /opt
+   ```
+3. Chuyển vào thư mục cài đặt Splunk Forwarder:
+   ```bash
+   cd /opt/splunkforwarder/bin
 
-wget -O splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz "https://download.splunk.com/products/universalforwarder/releases/9.1.1/linux/splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz"
+#### **Bước 3: Khởi Động Splunk Universal Forwarder**
+4. Khởi động **Splunk Universal Forwarder** và đồng ý với các điều khoản giấy phép:
+   ```bash
+   ./splunk start --accept-license
+   ```
+   ![alt text](image.png)
+---
+### **2. Tải và Cài Đặt Splunk Add-on for Unix/Linux**
+#### **Bước 1: Tải Splunk Add-on cho Unix/Linux**
+1. Truy cập vào **Splunkbase** để tải **Splunk Add-on for Unix/Linux**. Đảm bảo bạn tải phiên bản tương thích với phiên bản Splunk bạn đang sử dụng (ví dụ, Splunk 10.0.0).
+   * **Link tải Splunk Add-on cho Unix/Linux**: [Tải Splunk Add-on for Unix/Linux](https://splunkbase.splunk.com/app/833/)
+#### **Bước 2: Giải Nén và Cài Đặt Splunk Add-on**
+2. Sau khi tải về file `.tgz` của Add-on, sử dụng lệnh sau để giải nén vào thư mục cấu hình của **Splunk Forwarder**:
+   ```bash
+   tar -xvf splunk-add-on-for-unix-and-linux_8100.tgz -C /opt/splunkforwarder/etc/apps/
+   ```
+---
 
-gdown --id 1ifWL-PHg_Q-qC105Gz6sZMUe8sMEQ547 => đăng nhập vào web tải splunk add on
+### **3. Cấu Hình Splunk Universal Forwarder**
 
-tar xvzf splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz -C /opt
-tar -xvf splunk-add-on-for-unix-and-linux_8100.tgz
+#### **Bước 1: Cấu Hình Forwarder để Gửi Dữ Liệu**
 
-cd /opt/splunkforwarder/bin 
-	./splunk start --accept-license
-	./splunk add forward-server 172.10.0.10:9997
-	./splunk enable boot-start
-sudo mv Splunk_TA_nix/ /opt/splunkforwarder/etc/apps/
-cd /opt/splunkforwarder/etc/apps/Splunk_TA_nix/default/
-nano inputs.conf chinh sua file inputs.conf 
+1. Di chuyển đến thư mục chứa các file thực thi của Splunk Forwarder:
 
-[monitor:///var/log/messages]
-disabled = false
-index = main
-sourcetype = syslog
+   ```bash
+   cd /opt/splunkforwarder/bin
+   ```
 
+2. Thêm **Splunk server** mà bạn sẽ gửi dữ liệu log tới. Thay `<ip-address-of-splunk>` bằng địa chỉ IP của máy chủ Splunk:
 
-cd /opt/splunkforwarder/bin: ./splunk restart
+   ```bash
+   ./splunk add forward-server <ip-address-of-splunk>:9997
+   ```
+   ![alt text](image-1.png)
+   ![alt text](image-2.png)
 
-☑Cau hinh may Splunk
+#### **Bước 2: Bật Chức Năng Khởi Động Tự Động**
 
-wget -O splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz "https://download.splunk.com/products/splunk/releases/9.1.1/linux/splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz"
+3. Để đảm bảo rằng Splunk Forwarder tự động khởi động khi hệ thống khởi động lại, sử dụng lệnh sau:
 
-tar -xvzf splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz -C /opt
+   ```bash
+   ./splunk enable boot-start
+   ```
 
+---
+
+### **4. Cấu Hình Thu Thập Log**
+
+#### **Bước 1: Cấu Hình Log Inputs**
+
+1. Chuyển đến thư mục cấu hình của Splunk Forwarder:
+
+   ```bash
+   cd /opt/splunkforwarder/etc/apps/Splunk_TA_nix/default/
+   ```
+
+2. Mở file `inputs.conf` để cấu hình việc thu thập log:
+
+   ```bash
+   nano inputs.conf
+   ```
+
+3. Thêm cấu hình sau để giám sát log hệ thống:
+
+   ```bash
+   [monitor:///var/log/messages]
+   disabled = false
+   index = main
+   sourcetype = syslog
+   ```
+![alt text](image-3.png)
+4. Lưu và thoát khỏi file `inputs.conf` (nhấn `CTRL + X`, chọn `Y` để lưu và `Enter` để thoát).
+
+#### **Bước 2: Khởi Động Lại Splunk Forwarder**
+
+5. Khởi động lại Splunk Forwarder để áp dụng các thay đổi:
+
+   ```bash
+   ./splunk restart
+   ```
+
+---
+6.Cấu hình splunk cho terminal Splunk
+```bash
+wget -O splunk-10.0.0-e8eb0c4654f8-linux-amd64.tgz "https://download.splunk.com/products/splunk/releases/10.0.0/linux/splunk-10.0.0-e8eb0c4654f8-linux-amd64.tgz"
+tar -xvzf <thumucvuatai> -C /opt
 cd /opt/splunk/bin: ./splunk start --accept-license
+```
+
+### **5. Kiểm Tra và Giám Sát Dữ Liệu**
+
+#### **Bước 1: Truy Cập Giao Diện Web của Splunk**
+
+1. Mở trình duyệt web và nhập địa chỉ của máy chủ Splunk:
+
+   ```bash
+   firefox http://<ip-address-of-splunk>:8000
+   ```
+
+2. Đăng nhập vào Splunk Web bằng tài khoản của bạn.
+
+#### **Bước 2: Kiểm Tra Log Đã Thu Thập**
+
+1. Truy vấn trong giao diện Splunk để kiểm tra dữ liệu log đã được thu thập:
+
+   ```bash
+   index="main" sourcetype="syslog"
+   ```
+
+2. Nếu log đã được thu thập, bạn có thể tiếp tục các bước tạo **Reports**, **Dashboards**, và **Alerts**.
+
+---
+
+### **6. Tạo Báo Cáo (Reports), Dashboard và Cảnh Báo (Alerts)**
+
+#### **Bước 1: Tạo Báo Cáo**
+
+1. Vào phần **Reports** trong giao diện Splunk.
+2. Tạo báo cáo từ dữ liệu log thu thập được.
+
+#### **Bước 2: Tạo Dashboard**
+
+1. Vào phần **Dashboard** trong giao diện Splunk.
+2. Tạo dashboard mới để trực quan hóa dữ liệu log.
+
+#### **Bước 3: Tạo Cảnh Báo (Alerts)**
+
+1. Vào **Settings** > **Searches, Reports, and Alerts**.
+2. Tạo **alert** mới để theo dõi các sự kiện đặc biệt, ví dụ: đăng nhập không hợp lệ hoặc vượt quá số lần cho phép.
+
+---
+
+
 
 
 ##### **3. Kết Thúc Bài Lab:**
