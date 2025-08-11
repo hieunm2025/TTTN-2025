@@ -1,6 +1,6 @@
 # Sửa lỗi đường dẫn tải lab và viết lại hướng dẫn
 ### **Nội dung và Hướng dẫn Bài Thực Hành - Cài đặt và Sử dụng Splunk**
-* **Tải Imodule**: Link tải `imodule.tar`: [https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar](https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar)
+* **Tải Imodule**: Link tải `imodule.tar`: imodule [https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar](https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar)
 
 #### **Mục đích Bài Thực Hành**
 
