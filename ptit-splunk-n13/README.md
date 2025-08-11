@@ -1,5 +1,6 @@
 # Sửa lỗi đường dẫn tải lab và viết lại hướng dẫn
 ### **Nội dung và Hướng dẫn Bài Thực Hành - Cài đặt và Sử dụng Splunk**
+* **Tải Imodule**: Link tải `imodule.tar`: [https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar](https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar)
 
 #### **Mục đích Bài Thực Hành**
 
@@ -26,7 +27,7 @@ Bài thực hành này giúp sinh viên làm quen với **Splunk**, một công 
    labtainer -r ptit-splunk-n13
    ```
 
-   **Lưu ý**: Sinh viên cần **sử dụng email stu.ptit.edu.vn** của mình để nhập thông tin người thực hiện bài lab khi có yêu cầu. Thông tin này sẽ được sử dụng để chấm điểm.
+
 
 3. Sau khi khởi động thành công, **3 terminal ảo sẽ xuất hiện**, mỗi terminal sẽ đại diện cho một máy trong mạng LAN:
 
@@ -43,6 +44,40 @@ Bài thực hành này giúp sinh viên làm quen với **Splunk**, một công 
    ```
 
 2. Trên **terminal của server** (container `logserver`), thực hiện các thao tác để **Splunk thu thập log** từ server.
+Thêm hướng dẫn 
+☑Cau hinh may server
+
+wget -O splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz "https://download.splunk.com/products/universalforwarder/releases/9.1.1/linux/splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz"
+
+gdown --id 1ifWL-PHg_Q-qC105Gz6sZMUe8sMEQ547 => đăng nhập vào web tải splunk add on
+
+tar xvzf splunkforwarder-9.1.1-64e843ea36b1-Linux-x86_64.tgz -C /opt
+tar -xvf splunk-add-on-for-unix-and-linux_8100.tgz
+
+cd /opt/splunkforwarder/bin 
+	./splunk start --accept-license
+	./splunk add forward-server 172.10.0.10:9997
+	./splunk enable boot-start
+sudo mv Splunk_TA_nix/ /opt/splunkforwarder/etc/apps/
+cd /opt/splunkforwarder/etc/apps/Splunk_TA_nix/default/
+nano inputs.conf chinh sua file inputs.conf 
+
+[monitor:///var/log/messages]
+disabled = false
+index = main
+sourcetype = syslog
+
+
+cd /opt/splunkforwarder/bin: ./splunk restart
+
+☑Cau hinh may Splunk
+
+wget -O splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz "https://download.splunk.com/products/splunk/releases/9.1.1/linux/splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz"
+
+tar -xvzf splunk-9.1.1-64e843ea36b1-Linux-x86_64.tgz -C /opt
+
+cd /opt/splunk/bin: ./splunk start --accept-license
+
 
 ##### **3. Kết Thúc Bài Lab:**
 
@@ -104,11 +139,7 @@ Bài thực hành này giúp sinh viên làm quen với **Splunk**, một công 
 
 ---
 
-### **Kết Quả và Chấm Điểm**
-
-Sau khi hoàn thành các nhiệm vụ trên, sinh viên sẽ gửi kết quả dưới dạng tệp zip. Giảng viên sẽ sử dụng các **câu lệnh chấm điểm** để kiểm tra xem sinh viên đã hoàn thành các nhiệm vụ như yêu cầu trong bài thực hành.
 
 ---
 
-* **Tải Imodule**: Link tải `imodule.tar`: [https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar](https://github.com/khuyennguyen128/AnNinhMang/releases/download/new/imodule.tar)
 
