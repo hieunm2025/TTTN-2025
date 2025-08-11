@@ -2,8 +2,15 @@
 ---
 
 **Nội dung và hướng dẫn thực hiện bài thực hành**
+<<<<<<< HEAD
  imodule https://github.com/hieunm2025/TTTN-2025/raw/refs/heads/main/ptit-snort-detect/imodule.tar
 ![alt text](image.png)
+=======
+Vào terminal nhập imodule để cài đặt bài lab về:
+
+imodule https://github.com/hieunm2025/TTTN-2025/raw/refs/heads/main/ptit-snort-detect/imodule.tar
+
+>>>>>>> f4db722fed222039e74357b98c155aa39b704917
 **Mục đích:**
 
 * Giúp sinh viên hiểu về công cụ Snort và cách sử dụng nó trong bảo mật mạng.
