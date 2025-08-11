@@ -2,7 +2,7 @@
 ---
 
 **Nội dung và hướng dẫn thực hiện bài thực hành**
-
+imodule https://github.com/hieunm2025/TTTN-2025/raw/refs/heads/main/ptit-snort-detect/imodule.tar
 **Mục đích:**
 
 * Giúp sinh viên hiểu về công cụ Snort và cách sử dụng nó trong bảo mật mạng.
