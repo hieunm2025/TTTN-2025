@@ -1,6 +1,5 @@
 ### Hướng Dẫn Toàn Diện Về Snort
 
-Dưới đây là tài liệu tổng hợp toàn diện về Snort, dựa trên việc tích hợp tất cả các phần kiến thức đã được tóm tắt trước đó. Tôi đã sắp xếp nội dung theo cấu trúc logic, loại bỏ lặp lại, và đảm bảo dòng chảy tự nhiên để dễ theo dõi. Tài liệu bao gồm giới thiệu, chế độ hoạt động, kiến trúc, cấu hình, đầu vào/đầu ra, quy tắc, phát triển quy tắc với ví dụ thực tế, và tính năng chính. Nội dung được trình bày rõ ràng, sử dụng tiêu đề phụ và danh sách để tăng tính đọc.
 
 #### 1. Giới Thiệu Về Snort
 Snort là một công cụ mã nguồn mở mạnh mẽ, được sử dụng rộng rãi trong lĩnh vực an ninh mạng. Nó hoạt động như một Hệ thống Phát hiện Xâm nhập (IDS) và Hệ thống Ngăn chặn Xâm nhập (IPS), đồng thời có thể đóng vai trò như công cụ ghi lại gói tin hoặc sniff lưu lượng mạng (tương tự Suricata). Với khả năng phân tích toàn bộ lưu lượng mạng, Snort giúp phát hiện và ghi nhận các hoạt động đáng ngờ, mang lại cái nhìn tổng quan cho quản trị viên về tình trạng mạng và các giao dịch ứng dụng. Snort được thiết kế để chạy hiệu quả trên cả phần cứng thông thường lẫn tùy chỉnh, và yêu cầu các bộ quy tắc cụ thể để hướng dẫn quá trình kiểm tra và phát hiện mối đe dọa.
