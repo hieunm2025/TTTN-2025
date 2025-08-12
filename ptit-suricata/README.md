@@ -45,6 +45,7 @@ Regex trên sẽ phát hiện các yêu cầu HTTP chứa chuỗi /php, /api, /u
 2. Viết rule: Dựa trên thông tin thu thập được, ta sẽ xây dựng được các quy tắc với các điều kiện và hành động cụ thể tương ứng
 3. Kiểm tra và tối ưu: Sau khi viết xong, cần đảm bảo quy tắc bằng cách sử dụng các gói tin pcap và điều chỉnh quy tắc sao cho để tránh cảnh báo sai (false positives).
 4. Triển khi và giám sát: Triển khai quy tắc vào hệ thống Suricata và theo dõi hiệu suất cũng như cảnh báo
+<<<<<<< HEAD
 
 Trong bối cảnh an ninh mạng ngày nay, thách thức lớn mà chúng ta gặp phải là lưu lượng mã hóa. Lưu lượng mã hóa có thể gây ra khó khăn lớn khi phân tích và xây dựng các quy tắc phát hiện xâm nhập (IDS) và ngăn chặn xâm nhập(IPS) hiệu quả. Tuy nhiên có một số yếu tố mà chúng ta có thể khai thác như thông tin chứng chỉ SSL/TLS và dấu vân tay JA3
 
@@ -76,3 +77,5 @@ ja3.hash: Quy tắc này tìm kiếm các kết nối TLS có hash JA3.
 content:"473cd7cb9faa642487833865d516e578";: Tìm kiếm một hash JA3 cụ thể liên quan đến phần mềm Sliver, được sử dụng để nhận diện các phiên bản C2 của nó.
 
 Quy tắc này giúp phát hiện lưu lượng mã hóa TLS mà phần mềm Sliver tạo ra trong các cuộc tấn công C2 (Command and Control).
+=======
+>>>>>>> fca31008b27657d0e39901a6a085a93e4de2e980
