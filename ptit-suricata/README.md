@@ -1,148 +1,47 @@
-## Bài Thực Hành: Cấu Hình và Sử Dụng Suricata, Hydra, Nmap, và Hping3
+# suricata
 
-### Mục Đích
+Quy tắc trong suricata để giám sát và phát hiện hoạt động bất thường trong lưu lượng mạng
+Cấu trúc quy tắc trong suricata:
+1. Cấu trúc cơ bản
+Quy tắc trong Suricata gồm 2 phần chính: Tiêu đề và Thân quy tắc
+- Tiêu đề (Header): Đây là phần quyết định hành động mà Suricata sẽ thực hiện khi phát hiện dấu hiệu trong lưu lượng mạng. Nó bao gồm các thông tin như hành động(alert, log, pass, drop), giao thức (như tco,udp,icmp), địa chỉ IP nguồn và đích, cũng như cổng.
+**Ví dụ**:
+```text
+alert tcp $HOME_NET any -> $EXTERNAL_NET 9443 (msg:"Possible attack detected"; sid:1000001;)
+```
+Trong ví dụ trên:
++alert là hành động mà Suricata sẽ thực hiện khi điều kiện trong thân quy tắc được thỏa mãn.
++ tcp là giao thức mà quy tắc này áp dụng.
++ $HOME_NET any -> $EXTERNAL_NET 9443 là quy định về hướng và cổng của lưu lượng mạng mà quy tắc này giám sát.
+- Thân quy tắc(Body): Phần này mô tả các điều kiện cụ thể mà Suricata sẽ tìm kiếm trong lưu lượng mạng, bao gồm các từ khóa như content, msg, flow và prce
+Ví dụ:
+```text
+content:"malicious_string"; msg:"Malicious content detected"; sid:1000001;
+```
+content:"malicious_string": tìm kiếm chuỗi "malicious_string" trong nd gói tin
+msg: "Malicious content detected": Hiển thị thông báo khi quy tắc bị kích hoạt
 
-* Hiểu các kiểu quét (scan) trong Nmap.
-* Sử dụng công cụ Hydra để tấn công vết cạn (brute-force).
-* Sử dụng công cụ Hping3 để thực hiện tấn công từ chối dịch vụ (DoS).
-* Thực hành cấu hình và viết rule trong Suricata.
+2. Các phần trong quy tắc:
+**action**: Xác định hành động mà Suricata sẽ thực hiện, alert(cảnh báo), log(Nhật kí), pass(bỏ qua gói tin), drop(loại bỏ gói tin), reject(từ chối kết nối)
+**protocol**: giao thức mạng mà quy tắc áp dụng, tcp,udp,http,dns...
+**IP và cổng**: Quy định địa chỉ IP và cổng nguồn và đích của lưu lượng mà quy tắc giám sát
+$HOME_NET any -> $EXTERNAL_NET 80 (giám sát lưu lượng HTTP từ mạng nội bộ ra bên ngoài)
+**msg**: Tin nhắn hiển thị khi quy tắc được kích hoạt. Thông thường sẽ bao gồm mô tả về sự kiện hoặc hành động đáng ngờ
+**content**: Đoạn nội dung cụ thể mà Suricata sẽ tìm kiếm trong gói tin. Đoạn này có thể là chuỗi ký tự hoặc giá trị byte cụ thể trong dữ liệu gói tin.
+**flow**: Xác định hướng của lưu lượng, ví dụ to_server(đến máy chủ) hoặc from_client(từ máy khách)
+**sid(Signature ID)**: ID duy nhất để nhận diện quy tắc. Mỗi quy tắc có một sid khác nhau, giúp phân biệt và quản lý quy tắc.
 
-### Yêu Cầu Đối Với Sinh Viên
+3. Ví dụ
+```
+alert tcp any any -> $HOME_NET 80 (msg:"Possible HTTP attack"; content:"malicious"; sid:1000001;)
+```
+Quy tắc sẽ phát hiện bất cứ lưu lượng HTTP nào đến từ bất kỳ IP và cổng nào vào máy chủ nội bộ ($HOME_NET) trên cổng 80. Nếu phát hiện chuỗi malicious trong nd, quy tắc kích hoạt một cảnh báo
+4. Sử dụng Regex(PCRE)
+pcre:"/\/(php|api|upload|actions)\.php\?/i";
+Regex trên sẽ phát hiện các yêu cầu HTTP chứa chuỗi /php, /api, /upload hoặc /actions kết thúc bằng .php?
 
-* Có kiến thức về hệ điều hành Linux.
-* Cài đặt và sử dụng các công cụ cơ bản như Nmap, Hydra, Hping3, Suricata.
-
-### Nội Dung Thực Hành
-
-1. **Tải Lab**
-   Sinh viên tải lab tại:
-   [imodule.tar](https://github.com/nguyenductuan12/ptit-suricata/raw/main/imodule.tar)
-
-2. **Cập Nhật Thời Gian Trên Máy Ubuntu**
-   Để cập nhật thời gian thực trên máy Ubuntu:
-
-   ```bash
-   sudo apt install ntpdate
-   sudo ntpdate time.windows.com
-   ```
-
-3. **Khởi Động Lab**
-   Mở terminal và chạy lệnh sau để khởi động lab:
-
-   ```bash
-   labtainer -r ptit-suricata
-   ```
-
-   * Hai terminal ảo sẽ xuất hiện:
-
-     * **server**: Đại diện cho máy server.
-     * **attacker**: Đại diện cho máy attacker.
-     * Cả hai máy nằm trong cùng một dải mạng và máy attacker đã biết địa chỉ IP của máy server.
-
-4. **Cấu Hình Suricata Trên Máy Server**
-   Trên máy **server**, thực hiện cấu hình Suricata qua tệp cấu hình `/etc/suricata/suricata.yaml`.
-
-   * Cấu hình dải mạng cần giám sát:
-
-     * Do hai máy nằm cùng dải mạng, cấu hình trường `HOME_NET`.
-   * Cấu hình đường dẫn đến tệp quy tắc Suricata trong trường `rule-files`.
-   * Khởi động lại dịch vụ Suricata để cập nhật cấu hình:
-
-     ```bash
-     sudo systemctl restart suricata
-     ```
-
-5. **Cập Nhật Các Tệp Luật Suricata**
-   Cập nhật các tập luật có sẵn và tệp luật tự định nghĩa:
-
-   ```bash
-   suricata-update
-   ```
-
-6. **Tạo File Định Nghĩa Các Rule Riêng**
-   Tạo một tệp luật tự định nghĩa trong thư mục đã cấu hình trong `suricata.yaml`.
-
-   Tham khảo hướng dẫn sử dụng Suricata rules tại: [Suricata Rule Documentation](https://docs.suricata.io/en/latest/rules/index.html)
-
-7. **Viết Rule Phát Hiện Nmap Scan**
-
-   * Viết rule phát hiện quét Nmap TCP (sử dụng lệnh `nmap -sT`) với thông điệp cảnh báo:
-
-     ```bash
-     alert tcp $HOME_NET any -> $HOME_NET any (msg:"POSSBL SCAN NMAP KNOWN TCP (type -sT) - {MSV}"; flow:stateless; classtype: attempted-recon; sid:1000001; threshold:type limit, track by_src, count 10, seconds 300; dsize:0;)
-     ```
-   * Trên máy **attacker**, thực hiện quét cổng TCP:
-
-     ```bash
-     nmap -sT <IP_victim>
-     ```
-
-8. **Viết Rule Phát Hiện Nmap Scan UDP**
-
-   * Viết rule phát hiện quét Nmap UDP (sử dụng lệnh `nmap -sU`) với thông điệp cảnh báo:
-
-     ```bash
-     alert udp $HOME_NET any -> $HOME_NET any (msg:"POSSBL SCAN NMAP KNOWN UDP (type -sU) - {MSV}"; flow:stateless; classtype: attempted-recon; sid:1000002; threshold:type limit, track by_src, count 10, seconds 300; dsize:0;)
-     ```
-   * Trên máy **attacker**, thực hiện quét cổng UDP:
-
-     ```bash
-     nmap -sUV -F -T5 <IP_victim>
-     ```
-
-9. **Viết Rule Phát Hiện Tấn Công ICMP Flood**
-
-   * Viết rule phát hiện tấn công ICMP flood với thông điệp cảnh báo:
-
-     ```bash
-     alert icmp $HOME_NET any -> $HOME_NET any (msg:"POSSBL DOS ICMP PACKET FLOOD - {MSV}"; sid:1000003;)
-     ```
-   * Trên máy **attacker**, sử dụng công cụ Hping3 để tấn công DoS vào máy victim:
-
-     ```bash
-     sudo hping3 -1 --flood <IP_victim>
-     ```
-
-10. **Viết Rule Phát Hiện Tấn Công Brute-Force SSH**
-
-    * Viết rule phát hiện tấn công brute-force vào dịch vụ SSH với thông điệp cảnh báo:
-
-      ```bash
-      alert tcp $HOME_NET any -> $HOME_NET 22 (msg:"POSSBL SSH BRUTE FORCING! - {MSV}"; classtype: attempted-admin; sid:1000004;)
-      ```
-    * Trên máy **attacker**, sử dụng công cụ Hydra để thực hiện tấn công brute-force vào SSH:
-
-      ```bash
-      hydra -L username.txt -P passlist.txt ssh://<IP_victim>
-      ```
-
-11. **Tải File Từ Victim Về Máy Attacker**
-
-    * Sau khi thành công trong việc brute-force, tải file từ victim về và đọc nó trên máy attacker.
-
-12. **Kết Thúc Bài Lab**
-
-    * Kiểm tra kết quả thực hiện bài lab bằng cách sử dụng lệnh `checkwork`:
-
-      ```bash
-      checkwork
-      ```
-    * Để đóng bài lab, sử dụng lệnh `stoplab`:
-
-      ```bash
-      stoplab
-      ```
-    * Sau khi dừng bài lab, một tệp zip chứa kết quả sẽ được tạo và lưu ở vị trí hiển thị.
-
-13. **Khởi Động Lại Lab**
-
-    * Trong trường hợp cần làm lại bài lab, dùng lệnh:
-
-      ```bash
-      startlab -r lab_suricata
-      ```
-
-
-
-* `{MSV}` trong các thông điệp cảnh báo là mã sinh viên của bạn. Thay thế `{MSV}` bằng mã sinh viên của bạn trong các rule.
-* Hãy kiểm tra các log của Suricata trong thư mục `/var/log/suricata/` để theo dõi cảnh báo và phát hiện các tấn công.
+**Quy trình phát triển quy tắc Suricata**
+1. Thu thập thông tin và dữ liệu: Để tạo quy tắc hiệu quả, cần thu thập dữ liệu về các mối đe dọa hoặc hành vi mạng có thể xảy ra. Dữ liệu này có thể đến từ các cộng đồng an ninh mạng hoặc có nguồn thông tin về mối đe dọa(threat intelligence)
+2. Viết rule: Dựa trên thông tin thu thập được, ta sẽ xây dựng được các quy tắc với các điều kiện và hành động cụ thể tương ứng
+3. Kiểm tra và tối ưu: Sau khi viết xong, cần đảm bảo quy tắc bằng cách sử dụng các gói tin pcap và điều chỉnh quy tắc sao cho để tránh cảnh báo sai (false positives).
+4. Triển khi và giám sát: Triển khai quy tắc vào hệ thống Suricata và theo dõi hiệu suất cũng như cảnh báo
