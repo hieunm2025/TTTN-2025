@@ -45,3 +45,34 @@ Regex trên sẽ phát hiện các yêu cầu HTTP chứa chuỗi /php, /api, /u
 2. Viết rule: Dựa trên thông tin thu thập được, ta sẽ xây dựng được các quy tắc với các điều kiện và hành động cụ thể tương ứng
 3. Kiểm tra và tối ưu: Sau khi viết xong, cần đảm bảo quy tắc bằng cách sử dụng các gói tin pcap và điều chỉnh quy tắc sao cho để tránh cảnh báo sai (false positives).
 4. Triển khi và giám sát: Triển khai quy tắc vào hệ thống Suricata và theo dõi hiệu suất cũng như cảnh báo
+
+Trong bối cảnh an ninh mạng ngày nay, thách thức lớn mà chúng ta gặp phải là lưu lượng mã hóa. Lưu lượng mã hóa có thể gây ra khó khăn lớn khi phân tích và xây dựng các quy tắc phát hiện xâm nhập (IDS) và ngăn chặn xâm nhập(IPS) hiệu quả. Tuy nhiên có một số yếu tố mà chúng ta có thể khai thác như thông tin chứng chỉ SSL/TLS và dấu vân tay JA3
+
+**SSL/TLS Certificates và Dấu vân tay JA3**
+Các chứng chỉ SSL/TLS được trao đổi trong quá trình bắt tay của một kết nối SSL/TLS, chứa nhiều chi tiết vân chưa được mã hóa. Những chi tiết này có thể bao gồm thông tin về nhà phát hành, ngày cấp, ngày hết hạn, đối tượng(chứa thông tin về owner của chứng chỉ và tên miền). Các tên miền độc hại có thể dùng chứng chỉ này với các đặc điểm bất thường hoặc duy nhất. Việc nhận diện bất thường trong SSL/TLS certificate là bước đệm để xây dựng các quy tắc Suricata hiệu quả.
+
+Ngoài ra, có thể tận dụng **JA3 Hash** một phương pháp dấu vân tay cung cấp một địa diện duy nhất cho máy khách SSL/TLS. JA3 hash kết hợp các chi tiết từ các gói client hello trong quá trình bắt tay SSL/TLS, tạo một digest có thể là duy nhất cho các họ malware. 
+
+Ví dụ 1: Phát hiện Dirdex qua SSL/TLS mã hóa
+```
+alert tls $EXTERNAL_NET any -> $HOME_NET any (msg:"ET MALWARE ABUSE.CH SSL Blacklist Malicious SSL certificate detected (Dridex)"; flow:established,from_server; content:"|16|"; content:"|0b|"; within:8; byte_test:3,<,1200,0,relative; content:"|03 02 01 02 02 09 00|"; fast_pattern; content:"|30 09 06 03 55 04 06 13 02|"; distance:0; pcre:"/^[A-Z]{2}/R"; content:"|55 04 07|"; distance:0; content:"|55 04 0a|"; distance:0; pcre:"/^.{2}[A-Z][a-z]{3,}\s(?:[A-Z][a-z]{3,}\s)?(?:[A-Z](?:[A-Za-z]{0,4}?[A-Z]|(?:\.[A-Za-z]){1,3})|[A-Z]?[a-z]+|[a-z](?:\.[A-Za-z]){1,3})\.?[01]/Rs"; content:"|55 04 03|"; distance:0; byte_test:1,>,13,1,relative; content:!"www."; distance:2; within:4; pcre:"/^.{2}(?P<CN>(?:(?:\d?[A-Z]?|[A-Z]?\d?)(?:[a-z]{3,20}|[a-z]{3,6}[0-9_][a-z]{3,6})\.){0,2}?(?:\d?[A-Z]?|[A-Z]?\d?)[a-z]{3,}(?:[0-9_-][a-z]{3,})?\.(?!com|org|net|tv)[a-z]{2,9})[01].*?(?P=CN)[01]/Rs"; content:!"|2a 86 48 86 f7 0d 01 09 01|"; content:!"GoDaddy"; sid:2023476; rev:5;)
+```
+content:"|16|"; content:"|0b|"; within:8;: Quy tắc tìm kiếm giá trị hex 16 (biểu tượng cho thông báo bắt tay) và 0b (chứng chỉ SSL) trong 8 byte đầu tiên của gói tin.
+
+content:"|03 02 01 02 02 09 00|"; fast_pattern;: Tìm kiếm một mẫu byte cụ thể có thể liên quan đến chứng chỉ SSL của Dridex.
+
+content:"|30 09 06 03 55 04 06 13 02|"; distance:0; pcre:"/^[A-Z]{2}/R";: Kiểm tra trường 'countryName' trong chứng chỉ, khớp với mã quốc gia có dạng hai chữ cái viết hoa.
+
+content:"|55 04 03|"; distance:0; byte_test:1,>,13,1,relative;: Kiểm tra trường 'commonName' trong chứng chỉ và kiểm tra độ dài của trường này có lớn hơn 13.
+
+Quy tắc này sẽ phát hiện chứng chỉ SSL có liên quan đến phần mềm độc hại Dridex, được sử dụng trong các cuộc tấn công qua giao thức TLS.
+
+Ví dụ 2: Phát hiện qua JA3 hash
+```
+alert tls any any -> any any (msg:"Sliver C2 SSL"; ja3.hash; content:"473cd7cb9faa642487833865d516e578"; sid:1002; rev:1;)
+```
+ja3.hash: Quy tắc này tìm kiếm các kết nối TLS có hash JA3.
+
+content:"473cd7cb9faa642487833865d516e578";: Tìm kiếm một hash JA3 cụ thể liên quan đến phần mềm Sliver, được sử dụng để nhận diện các phiên bản C2 của nó.
+
+Quy tắc này giúp phát hiện lưu lượng mã hóa TLS mà phần mềm Sliver tạo ra trong các cuộc tấn công C2 (Command and Control).
